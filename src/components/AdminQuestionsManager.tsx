@@ -7,6 +7,7 @@ type QuestionRow = {
   text: string;
   startsAt: string;
   endsAt: string;
+  answerCount: number;
 };
 
 function questionStatus(q: QuestionRow): "Past" | "Current" | "Upcoming" {
@@ -69,7 +70,9 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
     }
 
     const data = await res.json();
-    setQuestions((prev) => [data.question, ...prev].sort((a, b) => (a.startsAt < b.startsAt ? 1 : -1)));
+    setQuestions((prev) =>
+      [{ ...data.question, answerCount: 0 }, ...prev].sort((a, b) => (a.startsAt < b.startsAt ? 1 : -1)),
+    );
     setText("");
     setStartsAt("");
     setEndsAt("");
@@ -109,12 +112,21 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
     }
 
     const data = await res.json();
-    setQuestions((prev) => prev.map((q) => (q.id === id ? data.question : q)));
+    setQuestions((prev) => prev.map((q) => (q.id === id ? { ...data.question, answerCount: q.answerCount } : q)));
     setEditingId(null);
     setStatusMessage("Question updated.");
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(q: QuestionRow, requireConfirmation: boolean) {
+    if (requireConfirmation) {
+      const warning =
+        q.answerCount > 0
+          ? `Delete this question? ${q.answerCount} answer${q.answerCount === 1 ? "" : "s"} already submitted for it will be permanently deleted too. This can't be undone.`
+          : "Delete this question? This can't be undone.";
+      if (!window.confirm(warning)) return;
+    }
+
+    const id = q.id;
     setBusy(true);
     setStatusMessage(null);
 
@@ -209,7 +221,7 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
                     {s === "Upcoming" && (
                       <button
                         type="button"
-                        onClick={() => handleDelete(q.id)}
+                        onClick={() => handleDelete(q, false)}
                         disabled={busy}
                         className="text-xs underline disabled:opacity-40"
                         style={{ color: "#d99c82" }}
@@ -218,15 +230,26 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
                       </button>
                     )}
                     {s === "Current" && editingId !== q.id && (
-                      <button
-                        type="button"
-                        onClick={() => startEdit(q)}
-                        disabled={busy}
-                        className="text-xs underline disabled:opacity-40"
-                        style={{ color: "var(--foreground-muted)" }}
-                      >
-                        Replace
-                      </button>
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(q)}
+                          disabled={busy}
+                          className="text-xs underline disabled:opacity-40"
+                          style={{ color: "var(--foreground-muted)" }}
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(q, true)}
+                          disabled={busy}
+                          className="text-xs underline disabled:opacity-40"
+                          style={{ color: "#d99c82" }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </div>
 

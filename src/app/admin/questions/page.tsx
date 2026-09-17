@@ -26,6 +26,7 @@ export default async function AdminQuestionsPage() {
             text: q.text,
             startsAt: q.startsAt.toISOString(),
             endsAt: q.endsAt.toISOString(),
+            answerCount: q.answerCount,
           }))}
         />
       </FadeIn>

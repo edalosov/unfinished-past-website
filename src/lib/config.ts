@@ -47,7 +47,11 @@ export async function getActiveQuestion() {
 }
 
 export async function listQuestions() {
-  return prisma.question.findMany({ orderBy: { startsAt: "desc" } });
+  const questions = await prisma.question.findMany({
+    orderBy: { startsAt: "desc" },
+    include: { _count: { select: { answers: true } } },
+  });
+  return questions.map(({ _count, ...question }) => ({ ...question, answerCount: _count.answers }));
 }
 
 // All scheduled questions in chronological order, each tagged with its
@@ -127,10 +131,13 @@ export async function deleteQuestion(id: string) {
   if (!question) {
     throw new Error("Question not found");
   }
-  // A question that's already live or past is locked, same philosophy as
-  // never editing a published question in place.
-  if (question.startsAt <= new Date()) {
-    throw new Error("Can't delete a question that has already started");
+  // Once a question's window has closed, its answers are historical record
+  // and shouldn't be touched. The currently live question can still be
+  // deleted — the schema cascades that delete onto any answers already
+  // submitted against it, so the UI is responsible for warning about that
+  // before calling this.
+  if (question.endsAt <= new Date()) {
+    throw new Error("Can't delete a question that has already ended");
   }
   return prisma.question.delete({ where: { id } });
 }

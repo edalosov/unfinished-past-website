@@ -48,7 +48,7 @@ model Answer {
   tokenId       String
   tokenName     String // snapshotted at submission time — keeps admin views fast and Alchemy-independent
   questionId    String
-  question      Question @relation(fields: [questionId], references: [id])
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerText    String
   signature     String
   createdAt     DateTime @default(now())
