@@ -180,8 +180,11 @@ export function ArtworkDetail({
           // inline style + React state, which can silently collapse into
           // an instant jump for a cached image. Every piece in the
           // collection is 16:9, so the stage is fixed to that ratio
-          // (shrinking within max-h-[80vh] as needed) rather than sized
-          // off whatever the file reports.
+          // (shrinking within max-h-[80vh] as needed) and object-cover
+          // fills it edge to edge — cropping is a non-issue once every
+          // source file is actually 16:9, but it also means older,
+          // not-yet-16:9 pieces still render at the right ratio now
+          // instead of pillarboxing into a visible square.
           <motion.div
             key={imageSrc}
             initial={{ opacity: 0 }}
@@ -197,7 +200,7 @@ export function ArtworkDetail({
               unoptimized
               onLoad={onImageLoad}
               onError={onImageError}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-cover"
             />
           </motion.div>
         ) : (
