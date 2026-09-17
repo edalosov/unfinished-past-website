@@ -1,7 +1,7 @@
 import { getOwnedTokens, getTokenMetadata, resolveTokenOwner, type OwnedToken } from "@/lib/alchemy";
 import { getDelegatedAccess } from "@/lib/delegateRegistry";
 
-type ResolvedToken = { token: OwnedToken; ownerAddress: string };
+export type ResolvedToken = { token: OwnedToken; ownerAddress: string };
 
 // The single source of truth for "what can `walletAddress` see/act on" —
 // both resolveAccessibleTokens (the grid) and resolveTokenAccess (the
@@ -44,14 +44,17 @@ async function resolveAllAccessible(
 
 // Every token `walletAddress` can see: ones it holds directly, plus ones
 // held by any vault that has delegated this collection (or everything) to
-// it via delegate.xyz.
+// it via delegate.xyz. Each entry carries its own ownerAddress (the wallet
+// or vault that actually holds it) since that — not the connected
+// wallet — is what Answer rows are keyed on; a wallet with several
+// delegated vaults can see tokens answered under different addresses.
 export async function resolveAccessibleTokens(
   walletAddress: string,
   contractAddress: string,
   chainId: number,
-): Promise<OwnedToken[]> {
+): Promise<ResolvedToken[]> {
   const resolved = await resolveAllAccessible(walletAddress, contractAddress, chainId);
-  return [...resolved.values()].map((entry) => entry.token);
+  return [...resolved.values()];
 }
 
 export type TokenAccess = { allowed: boolean; ownerAddress: string | null };

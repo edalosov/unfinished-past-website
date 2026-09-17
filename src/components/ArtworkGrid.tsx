@@ -3,13 +3,19 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArtworkCard } from "@/components/ArtworkCard";
+import { GalleryStatusPanel, type CurrentQuestion } from "@/components/GalleryStatusPanel";
 import type { OwnedToken } from "@/lib/alchemy";
+
+type GalleryData = {
+  tokens: OwnedToken[];
+  currentQuestion: CurrentQuestion | null;
+  answeredTokenIds: string[];
+};
 
 type GalleryState =
   | { status: "loading" }
   | { status: "not-configured" }
-  | { status: "empty" }
-  | { status: "ready"; tokens: OwnedToken[] }
+  | { status: "ready"; data: GalleryData }
   | { status: "error"; message: string };
 
 const fadeIn = {
@@ -27,16 +33,21 @@ export function ArtworkGrid() {
     fetch("/api/gallery")
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to load gallery");
-        return res.json() as Promise<{ configured: boolean; tokens: OwnedToken[] }>;
+        return res.json() as Promise<{ configured: boolean } & Partial<GalleryData>>;
       })
       .then((data) => {
         if (cancelled) return;
         if (!data.configured) {
           setState({ status: "not-configured" });
-        } else if (data.tokens.length === 0) {
-          setState({ status: "empty" });
         } else {
-          setState({ status: "ready", tokens: data.tokens });
+          setState({
+            status: "ready",
+            data: {
+              tokens: data.tokens ?? [],
+              currentQuestion: data.currentQuestion ?? null,
+              answeredTokenIds: data.answeredTokenIds ?? [],
+            },
+          });
         }
       })
       .catch((err) => {
@@ -86,17 +97,29 @@ export function ArtworkGrid() {
         </motion.p>
       )}
 
-      {state.status === "empty" && (
-        <motion.p {...fadeIn} className="mt-10 text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
-          This wallet doesn&apos;t hold any pieces from the collection yet.
-        </motion.p>
-      )}
-
       {state.status === "ready" && (
-        <div className="mt-12 grid grid-cols-2 gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-          {state.tokens.map((token, i) => (
-            <ArtworkCard key={token.tokenId} token={token} index={i} />
-          ))}
+        <div className="mt-12 flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-16">
+          <div className="order-1 lg:order-2">
+            <GalleryStatusPanel
+              currentQuestion={state.data.currentQuestion}
+              answeredCount={state.data.answeredTokenIds.length}
+              totalCount={state.data.tokens.length}
+            />
+          </div>
+
+          <div className="order-2 flex-1 lg:order-1">
+            {state.data.tokens.length === 0 ? (
+              <motion.p {...fadeIn} className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
+                This wallet doesn&apos;t hold any pieces from the collection yet.
+              </motion.p>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+                {state.data.tokens.map((token, i) => (
+                  <ArtworkCard key={token.tokenId} token={token} index={i} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
