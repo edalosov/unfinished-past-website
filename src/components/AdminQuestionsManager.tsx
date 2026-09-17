@@ -23,12 +23,6 @@ function toDateInputValue(iso: string) {
   return iso.slice(0, 10);
 }
 
-function addOneYear(dateInputValue: string) {
-  const d = new Date(dateInputValue);
-  d.setUTCFullYear(d.getUTCFullYear() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: QuestionRow[] }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const [text, setText] = useState("");
@@ -39,13 +33,6 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editEndsAt, setEditEndsAt] = useState("");
-
-  function handleStartChange(value: string) {
-    setStartsAt(value);
-    if (value && (!endsAt || endsAt <= value)) {
-      setEndsAt(addOneYear(value));
-    }
-  }
 
   async function handleCreate() {
     setBusy(true);
@@ -162,7 +149,7 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
             <input
               type="date"
               value={startsAt}
-              onChange={(e) => handleStartChange(e.target.value)}
+              onChange={(e) => setStartsAt(e.target.value)}
               className="rounded-md border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--accent)]"
               style={{ borderColor: "var(--border-soft)" }}
             />
@@ -179,8 +166,7 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
           </label>
         </div>
         <p className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-          Defaults to a one-year window — adjust the end date if you need something different. Windows can&apos;t
-          overlap an existing question.
+          Pick whatever start and end dates you want — windows just can&apos;t overlap an existing question.
         </p>
         <button
           type="button"
