@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Playfair_Display, PT_Serif } from "next/font/google";
-import Script from "next/script";
 import { Providers } from "./providers";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { GlobalNav } from "@/components/GlobalNav";
 import "./globals.css";
 
@@ -44,20 +42,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${displayItalicAlt.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){}})();`}
-        </Script>
-        <ThemeProvider>
-          <Providers>
-            <GlobalNav />
-            <main className="flex-1">{children}</main>
-            {modal}
-          </Providers>
-        </ThemeProvider>
+        <Providers>
+          <GlobalNav />
+          <main className="flex-1">{children}</main>
+          {modal}
+        </Providers>
       </body>
     </html>
   );

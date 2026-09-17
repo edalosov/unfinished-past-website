@@ -1,23 +1,16 @@
 @import "tailwindcss";
 
+/* One fixed palette, no light/dark toggle — drawn from the collection
+   itself: deep blue-teal night exteriors and interiors, warm cream/skin
+   highlights, and an ember/lantern amber used sparingly as the accent. */
 :root {
-  --background: #0a0a0a;
-  --background-elevated: #141414;
-  --foreground: #d4d2cc;
-  --foreground-muted: #9a9a9a;
-  --foreground-faint: #6b6b6b;
-  --accent: #d4d2cc;
-  --border-soft: #262626;
-}
-
-:root[data-theme="light"] {
-  --background: #f6f1e6;
-  --background-elevated: #efe7d6;
-  --foreground: #2b2620;
-  --foreground-muted: #6b6254;
-  --foreground-faint: #9c9284;
-  --accent: #2b2620;
-  --border-soft: #ddd2ba;
+  --background: #10181c;
+  --background-elevated: #1a262b;
+  --foreground: #e8e1d2;
+  --foreground-muted: #a39a86;
+  --foreground-faint: #6f6a5c;
+  --accent: #c98a4b;
+  --border-soft: #2a3438;
 }
 
 @theme inline {
@@ -35,8 +28,8 @@ body {
   transition: background-color 0.7s ease, color 0.7s ease;
 }
 
-/* Every element's colors ease when the theme toggles (or any other
-   color/border state changes), instead of snapping instantly — part of
+/* Every element's colors ease on any state change (hover, selection,
+   year-tab switching, etc.) instead of snapping instantly — part of
    keeping the whole site feeling calm rather than abrupt. More specific
    rules (buttons, hovers) declare their own transition and take
    precedence over this default. */
@@ -78,11 +71,10 @@ body {
   color: var(--accent);
 }
 
-/* Theme toggle + wallet connect sit fixed in the corners at a high
-   z-index, so they stay visible over the modal's dark backdrop as well
-   as the plain page background — a theme-derived color goes unreadable
-   in one of those two cases, so this pins a fixed dark-chip/white-text
-   style that reads fine against either. */
+/* The wallet connect button sits fixed in the corner at a high z-index,
+   so it stays visible over the modal's dark backdrop as well as the
+   plain page background — this pins a fixed dark-chip/white-text style
+   that reads fine against either. */
 .gallery-connect-btn--overlay {
   background: rgba(10, 10, 10, 0.72);
   border-color: rgba(255, 255, 255, 0.35);
