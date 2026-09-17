@@ -29,9 +29,9 @@ export function ArtworkCard({ token, index }: { token: OwnedToken; index: number
         >
           {src ? (
             // motion.img, not next/image: these come from arbitrary
-            // external hosts with unknown dimensions, and we want each
-            // piece to keep its real aspect ratio instead of being cropped
-            // into a fixed box. Fading via framer-motion's `animate` prop
+            // external hosts. Every piece in the collection is 16:9, so the
+            // frame is fixed to that ratio rather than sized off whatever
+            // the file reports. Fading via framer-motion's `animate` prop
             // (rather than a raw CSS transition tied to inline style state)
             // guarantees the transition actually plays even for a cached
             // image, where the load event can otherwise fire before the
@@ -45,7 +45,7 @@ export function ArtworkCard({ token, index }: { token: OwnedToken; index: number
               initial={{ opacity: 0 }}
               animate={{ opacity: loaded ? 1 : 0 }}
               transition={{ duration: 1.1, ease: "easeOut" }}
-              className="block w-full"
+              className="block aspect-video w-full object-cover"
             />
           ) : (
             <div

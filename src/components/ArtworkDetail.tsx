@@ -178,23 +178,26 @@ export function ArtworkDetail({
           // prop drives it — that's always guaranteed to play a
           // transition on change, unlike a raw CSS transition tied to
           // inline style + React state, which can silently collapse into
-          // an instant jump for a cached image.
+          // an instant jump for a cached image. Every piece in the
+          // collection is 16:9, so the stage is fixed to that ratio
+          // (shrinking within max-h-[80vh] as needed) rather than sized
+          // off whatever the file reports.
           <motion.div
             key={imageSrc}
             initial={{ opacity: 0 }}
             animate={{ opacity: imageLoaded ? 1 : 0 }}
             transition={{ duration: 1.1, ease: "easeOut" }}
-            className="flex max-h-[80vh] max-w-full items-center justify-center"
+            className="aspect-video max-h-[80vh] w-full max-w-full"
           >
             <Image
               src={imageSrc}
               alt={token.name}
-              width={1200}
-              height={1200}
+              width={1600}
+              height={900}
               unoptimized
               onLoad={onImageLoad}
               onError={onImageError}
-              className="max-h-[80vh] w-auto max-w-full object-contain"
+              className="h-full w-full object-contain"
             />
           </motion.div>
         ) : (
