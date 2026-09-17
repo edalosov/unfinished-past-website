@@ -83,6 +83,45 @@ export async function createQuestion(data: { text: string; startsAt: Date; endsA
   return prisma.question.create({ data });
 }
 
+// For a question that's already live: fixes a wording mistake or adjusts
+// how long it stays open, without touching its id — any answers already
+// submitted against it stay valid. The start date is left alone, since
+// that's what makes this question "current" in the first place; changing
+// it would just be a delete-and-recreate under a different name.
+export async function updateQuestion(id: string, data: { text?: string; endsAt?: Date }) {
+  const question = await prisma.question.findUnique({ where: { id } });
+  if (!question) {
+    throw new Error("Question not found");
+  }
+  if (question.startsAt > new Date()) {
+    throw new Error("This question hasn't started yet — delete and recreate it instead");
+  }
+  if (question.endsAt <= new Date()) {
+    throw new Error("Can't edit a question that has already ended");
+  }
+
+  const nextEndsAt = data.endsAt ?? question.endsAt;
+  if (nextEndsAt <= question.startsAt) {
+    throw new Error("End date must be after the start date");
+  }
+
+  const overlapping = await prisma.question.findFirst({
+    where: {
+      id: { not: id },
+      startsAt: { lt: nextEndsAt },
+      endsAt: { gt: question.startsAt },
+    },
+  });
+  if (overlapping) {
+    throw new Error(`Overlaps with an existing question's window: "${overlapping.text}"`);
+  }
+
+  return prisma.question.update({
+    where: { id },
+    data: { text: data.text ?? question.text, endsAt: nextEndsAt },
+  });
+}
+
 export async function deleteQuestion(id: string) {
   const question = await prisma.question.findUnique({ where: { id } });
   if (!question) {

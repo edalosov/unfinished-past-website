@@ -35,6 +35,9 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
   const [endsAt, setEndsAt] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editEndsAt, setEditEndsAt] = useState("");
 
   function handleStartChange(value: string) {
     setStartsAt(value);
@@ -71,6 +74,44 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
     setStartsAt("");
     setEndsAt("");
     setStatusMessage("Question scheduled.");
+  }
+
+  function startEdit(q: QuestionRow) {
+    setStatusMessage(null);
+    setEditingId(q.id);
+    setEditText(q.text);
+    setEditEndsAt(toDateInputValue(q.endsAt));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function handleReplace(id: string) {
+    setBusy(true);
+    setStatusMessage(null);
+
+    const res = await fetch(`/api/admin/questions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: editText,
+        endsAt: new Date(editEndsAt).toISOString(),
+      }),
+    });
+
+    setBusy(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setStatusMessage(data.error || "Failed to update question");
+      return;
+    }
+
+    const data = await res.json();
+    setQuestions((prev) => prev.map((q) => (q.id === id ? data.question : q)));
+    setEditingId(null);
+    setStatusMessage("Question updated.");
   }
 
   async function handleDelete(id: string) {
@@ -176,11 +217,71 @@ export function AdminQuestionsManager({ initialQuestions }: { initialQuestions: 
                         Delete
                       </button>
                     )}
+                    {s === "Current" && editingId !== q.id && (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(q)}
+                        disabled={busy}
+                        className="text-xs underline disabled:opacity-40"
+                        style={{ color: "var(--foreground-muted)" }}
+                      >
+                        Replace
+                      </button>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm font-light leading-relaxed text-foreground">{q.text}</p>
-                  <p className="mt-2 text-xs" style={{ color: "var(--foreground-faint)" }}>
-                    {toDateInputValue(q.startsAt)} → {toDateInputValue(q.endsAt)}
-                  </p>
+
+                  {editingId === q.id ? (
+                    <div className="mt-3 flex flex-col gap-3">
+                      <textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        className="resize-none rounded-md border bg-transparent px-4 py-3 text-sm text-foreground outline-none focus:border-[var(--accent)]"
+                        style={{ borderColor: "var(--border-soft)" }}
+                      />
+                      <label className="flex flex-col gap-1 text-xs" style={{ color: "var(--foreground-muted)" }}>
+                        Ends
+                        <input
+                          type="date"
+                          value={editEndsAt}
+                          onChange={(e) => setEditEndsAt(e.target.value)}
+                          className="w-fit rounded-md border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--accent)]"
+                          style={{ borderColor: "var(--border-soft)" }}
+                        />
+                      </label>
+                      <p className="text-xs" style={{ color: "var(--foreground-faint)" }}>
+                        Started {toDateInputValue(q.startsAt)} — the start date can&apos;t change once a question
+                        has gone live.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleReplace(q.id)}
+                          disabled={busy || !editText.trim() || !editEndsAt}
+                          className="gallery-connect-btn self-start disabled:opacity-40"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={busy}
+                          className="text-xs underline disabled:opacity-40"
+                          style={{ color: "var(--foreground-faint)" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-2 text-sm font-light leading-relaxed text-foreground">{q.text}</p>
+                      <p className="mt-2 text-xs" style={{ color: "var(--foreground-faint)" }}>
+                        {toDateInputValue(q.startsAt)} → {toDateInputValue(q.endsAt)}
+                      </p>
+                    </>
+                  )}
                 </li>
               );
             })}
