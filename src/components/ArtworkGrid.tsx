@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArtworkCard } from "@/components/ArtworkCard";
+import { GalleryCarousel } from "@/components/GalleryCarousel";
 import { GalleryStatusPanel, type CurrentQuestion } from "@/components/GalleryStatusPanel";
 import type { OwnedToken } from "@/lib/alchemy";
+
+type ViewMode = "grid" | "gallery";
 
 type GalleryData = {
   tokens: OwnedToken[];
@@ -26,6 +29,7 @@ const fadeIn = {
 
 export function ArtworkGrid() {
   const [state, setState] = useState<GalleryState>({ status: "loading" });
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +83,35 @@ export function ArtworkGrid() {
         Click individually to answer
       </motion.p>
 
+      {state.status === "ready" && state.data.tokens.length > 0 && (
+        <motion.nav
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.4, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-6 flex gap-4"
+        >
+          {(["grid", "gallery"] as const).map((mode) => {
+            const isSelected = viewMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                aria-current={isSelected}
+                className="text-sm capitalize underline-offset-4"
+                style={{
+                  color: isSelected ? "var(--foreground)" : "var(--foreground-muted)",
+                  textDecoration: isSelected ? "underline" : "none",
+                  fontWeight: isSelected ? 700 : 400,
+                }}
+              >
+                {mode}
+              </button>
+            );
+          })}
+        </motion.nav>
+      )}
+
       {state.status === "loading" && (
         <motion.p {...fadeIn} className="mt-10 text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
           Gathering your pieces…
@@ -108,6 +141,12 @@ export function ArtworkGrid() {
               <motion.p {...fadeIn} className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
                 This wallet doesn&apos;t hold any pieces from the collection yet.
               </motion.p>
+            ) : viewMode === "gallery" ? (
+              <GalleryCarousel
+                tokens={state.data.tokens}
+                answeredTokenIds={state.data.answeredTokenIds}
+                hasCurrentQuestion={state.data.currentQuestion !== null}
+              />
             ) : (
               <div className="grid grid-cols-2 gap-x-10 gap-y-16">
                 {state.data.tokens.map((token, i) => (
