@@ -65,7 +65,7 @@ export function ArtworkGrid() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-screen-2xl px-6 pb-24 pt-32 sm:px-10 sm:pt-40">
+    <div className="mx-auto max-w-screen-2xl px-6 pb-24 pt-24 sm:px-10 sm:pt-28">
       <motion.h2
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
