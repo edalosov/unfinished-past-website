@@ -75,7 +75,7 @@ export function ArtworkCard({
           {token.name}
         </p>
         {answered !== undefined && (
-          <p className="mt-1 text-center text-xs" style={{ color: "var(--foreground-faint)" }}>
+          <p className="mt-1 text-center text-[0.7rem] italic" style={{ color: "var(--foreground-faint)" }}>
             {answered ? "Answered this year" : "Not answered yet"}
           </p>
         )}
