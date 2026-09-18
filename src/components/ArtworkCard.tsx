@@ -6,7 +6,19 @@ import { motion } from "framer-motion";
 import { useFallbackImage } from "@/hooks/useFallbackImage";
 import type { OwnedToken } from "@/lib/alchemy";
 
-export function ArtworkCard({ token, index }: { token: OwnedToken; index: number }) {
+export function ArtworkCard({
+  token,
+  index,
+  answered,
+}: {
+  token: OwnedToken;
+  index: number;
+  // Whether this piece has an answer for the current question — omitted
+  // entirely (no indicator shown) when there's no open question to answer.
+  // Purely informational either way: answering isn't assumed to be the
+  // only, or the "right," way to spend time with a piece.
+  answered?: boolean;
+}) {
   const { src, failed, loaded, onLoad, onError } = useFallbackImage(token.images, token.tokenId);
   const reported = useRef(false);
 
@@ -62,6 +74,11 @@ export function ArtworkCard({ token, index }: { token: OwnedToken; index: number
         >
           {token.name}
         </p>
+        {answered !== undefined && (
+          <p className="mt-1 text-center text-xs" style={{ color: "var(--foreground-faint)" }}>
+            {answered ? "Answered this year" : "Not answered yet"}
+          </p>
+        )}
       </Link>
     </motion.div>
   );

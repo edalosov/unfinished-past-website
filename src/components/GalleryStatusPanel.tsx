@@ -26,15 +26,7 @@ function StatLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function GalleryStatusPanel({
-  currentQuestion,
-  answeredCount,
-  totalCount,
-}: {
-  currentQuestion: CurrentQuestion | null;
-  answeredCount: number;
-  totalCount: number;
-}) {
+export function GalleryStatusPanel({ currentQuestion }: { currentQuestion: CurrentQuestion | null }) {
   return (
     <motion.aside
       initial={{ opacity: 0, y: 10 }}
@@ -71,24 +63,6 @@ export function GalleryStatusPanel({
                   : `${daysRemaining(currentQuestion.endsAt)} day${daysRemaining(currentQuestion.endsAt) === 1 ? "" : "s"} left`}
               </p>
             </div>
-
-            {totalCount > 0 && (
-              <div>
-                <StatLabel>Your progress</StatLabel>
-                <p className="mt-2 text-sm text-foreground">
-                  {answeredCount} of {totalCount} piece{totalCount === 1 ? "" : "s"} answered
-                </p>
-                <div className="mt-3 h-1 w-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
-                  <motion.div
-                    className="h-full"
-                    style={{ background: "var(--accent)" }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${totalCount === 0 ? 0 : (answeredCount / totalCount) * 100}%` }}
-                    transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div>

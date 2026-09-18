@@ -100,11 +100,7 @@ export function ArtworkGrid() {
       {state.status === "ready" && (
         <div className="mt-12 flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-16">
           <div className="order-1 lg:order-2">
-            <GalleryStatusPanel
-              currentQuestion={state.data.currentQuestion}
-              answeredCount={state.data.answeredTokenIds.length}
-              totalCount={state.data.tokens.length}
-            />
+            <GalleryStatusPanel currentQuestion={state.data.currentQuestion} />
           </div>
 
           <div className="order-2 flex-1 lg:order-1">
@@ -115,7 +111,16 @@ export function ArtworkGrid() {
             ) : (
               <div className="grid grid-cols-2 gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
                 {state.data.tokens.map((token, i) => (
-                  <ArtworkCard key={token.tokenId} token={token} index={i} />
+                  <ArtworkCard
+                    key={token.tokenId}
+                    token={token}
+                    index={i}
+                    answered={
+                      state.data.currentQuestion
+                        ? state.data.answeredTokenIds.includes(token.tokenId)
+                        : undefined
+                    }
+                  />
                 ))}
               </div>
             )}
