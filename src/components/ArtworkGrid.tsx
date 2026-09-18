@@ -29,7 +29,7 @@ const fadeIn = {
 
 export function ArtworkGrid() {
   const [state, setState] = useState<GalleryState>({ status: "loading" });
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("gallery");
 
   useEffect(() => {
     let cancelled = false;

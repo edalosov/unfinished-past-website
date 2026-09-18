@@ -18,10 +18,10 @@ function ArrowButton({
       type="button"
       onClick={onClick}
       aria-label={direction === "prev" ? "Previous piece" : "Next piece"}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-foreground transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:h-12 sm:w-12"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-foreground transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:h-14 sm:w-14"
       style={{ borderColor: "var(--border-soft)" }}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
         <path
           d={direction === "prev" ? "M10 3L5 8L10 13" : "M6 3L11 8L6 13"}
           stroke="currentColor"
@@ -70,9 +70,9 @@ function CarouselSlide({ token, answered }: { token: OwnedToken; answered?: bool
           </div>
         )}
       </div>
-      <p className="mt-4 text-center font-display text-xl font-bold text-foreground sm:text-2xl">{token.name}</p>
+      <p className="mt-5 text-center font-display text-2xl font-bold text-foreground sm:text-3xl">{token.name}</p>
       {answered !== undefined && (
-        <p className="mt-1 text-center text-[0.7rem] italic" style={{ color: "var(--foreground-faint)" }}>
+        <p className="mt-1 text-center text-xs italic" style={{ color: "var(--foreground-faint)" }}>
           {answered ? "Answered this year" : "Not answered yet"}
         </p>
       )}
@@ -117,7 +117,7 @@ export function GalleryCarousel({
   if (!token) return null;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="w-full">
       <div className="flex items-center gap-3 sm:gap-8">
         {hasMultiple && <ArrowButton direction="prev" onClick={() => go(-1)} />}
 
