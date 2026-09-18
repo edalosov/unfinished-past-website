@@ -45,11 +45,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${displayItalicAlt.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {/* Purely decorative, site-wide — a nod to the collection being
-            film stills. Fixed + pointer-events: none so it never
-            intercepts a click, sitting above everything including the
-            modal (see globals.css for the flicker animation). */}
-        <div aria-hidden className="film-grain" />
         <Providers>
           <GlobalNav />
           <main className="flex-1">{children}</main>
