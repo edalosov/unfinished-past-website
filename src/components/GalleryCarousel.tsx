@@ -70,7 +70,9 @@ function CarouselSlide({ token, answered }: { token: OwnedToken; answered?: bool
           </div>
         )}
       </div>
-      <p className="mt-5 text-center font-display text-2xl font-bold text-foreground sm:text-3xl">{token.name}</p>
+      <p className="mt-5 text-center font-display text-2xl font-bold text-foreground group-hover:underline sm:text-3xl">
+        {token.name}
+      </p>
       {answered !== undefined && (
         <p className="mt-1 text-center text-xs italic" style={{ color: "var(--foreground-faint)" }}>
           {answered ? "Answered this year" : "Not answered yet"}
