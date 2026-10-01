@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { buildSignInMessage } from "@/lib/authMessage";
+import { isUserRejection } from "@/lib/walletErrors";
 
 export type VerificationStatus =
   | "idle"
@@ -46,7 +47,7 @@ export function useWalletVerification() {
 
       setStatus("verified");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      setError(isUserRejection(err) ? "Request rejected. Please try again." : err instanceof Error ? err.message : "Verification failed");
       setStatus("needs-signature");
     }
   }, [address, signMessageAsync]);

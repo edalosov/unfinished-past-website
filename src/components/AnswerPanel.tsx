@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { buildAnswerMessage } from "@/lib/answerMessage";
+import { isUserRejection } from "@/lib/walletErrors";
 
 const MAX_LENGTH = 300;
 
@@ -126,7 +127,13 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
       setSharePreference("PRIVATE");
       setStatus("idle");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(
+        isUserRejection(err)
+          ? "Request rejected. Please submit again."
+          : err instanceof Error
+            ? err.message
+            : "Something went wrong",
+      );
       setStatus("error");
     }
   }
