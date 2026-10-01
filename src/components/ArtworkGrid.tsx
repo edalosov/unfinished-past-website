@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArtworkCard } from "@/components/ArtworkCard";
 import { GalleryCarousel } from "@/components/GalleryCarousel";
@@ -31,8 +32,17 @@ const fadeIn = {
 export function ArtworkGrid() {
   const [state, setState] = useState<GalleryState>({ status: "loading" });
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
+  const pathname = usePathname();
 
   useEffect(() => {
+    // ArtworkGrid never unmounts while an artwork is open in the intercepted
+    // modal route — the URL changes to /art/[tokenId] and back, but this
+    // stays mounted underneath the whole time. Re-running on every pathname
+    // change (and skipping the fetch unless we're actually back on "/")
+    // means answering a piece and closing the modal picks up the fresh
+    // answered-status instead of showing stale data from the initial load.
+    if (pathname !== "/") return;
+
     let cancelled = false;
 
     fetch("/api/gallery")
@@ -63,7 +73,7 @@ export function ArtworkGrid() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <div className="mx-auto max-w-screen-2xl px-6 pb-24 pt-24 sm:px-10 sm:pt-28">

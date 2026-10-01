@@ -21,6 +21,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Every Tailwind text size is defined in rem, so bumping the root size
+   scales every piece of text on the site proportionally by the same
+   amount — the smallest whole-pixel nudge up from the 16px default. */
+html {
+  font-size: 17px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

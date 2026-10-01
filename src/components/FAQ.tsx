@@ -1,7 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+
+function InlineLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline transition-colors hover:text-[var(--accent)]"
+      style={{ color: "var(--foreground)" }}
+    >
+      {children}
+    </a>
+  );
+}
 
 const INTRO_PARAGRAPHS = [
   "Unfinished Past is a series of participatory time-based AI-generated artworks inspired by memories from strangers online, friends and family, and myself.",
@@ -10,7 +24,7 @@ const INTRO_PARAGRAPHS = [
   "The final piece becomes a record of a seven-year relationship between a collector and their work of art.",
 ];
 
-const FAQ_ITEMS: { question: string; answer: string }[] = [
+const FAQ_ITEMS: { question: string; answer: ReactNode }[] = [
   {
     question: "What do you mean by \"remembering\" or \"forgetting\"?",
     answer:
@@ -45,6 +59,15 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
     question: "How many times can I answer?",
     answer: "You can only answer the question once per year, so make it count!",
   },
+  {
+    question: "I have another question that is not answered here, how can I contact you?",
+    answer: (
+      <>
+        Please send me a DM on <InlineLink href="https://x.com/Dalos">X @Dalos</InlineLink> or send me an email to{" "}
+        <InlineLink href="mailto:edov@dalosdov.com">edov@dalosdov.com</InlineLink>.
+      </>
+    ),
+  },
 ];
 
 function FAQItem({
@@ -54,7 +77,7 @@ function FAQItem({
   onToggle,
 }: {
   question: string;
-  answer: string;
+  answer: ReactNode;
   isOpen: boolean;
   onToggle: () => void;
 }) {
