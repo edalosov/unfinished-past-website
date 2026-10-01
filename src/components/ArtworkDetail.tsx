@@ -149,110 +149,104 @@ export function ArtworkDetail({
 
   if (state.status === "loading") {
     return (
-      <div className="relative min-h-full w-full">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="relative flex min-h-full w-full items-center justify-center"
+      >
         {backControl}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="flex min-h-full w-full items-center justify-center"
-        >
-          <p className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
-            Loading…
-          </p>
-        </motion.div>
-      </div>
+        <p className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
+          Loading…
+        </p>
+      </motion.div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="relative min-h-full w-full">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="relative flex min-h-full w-full flex-col items-center justify-center gap-4 px-6 text-center"
+      >
         {backControl}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="flex min-h-full w-full flex-col items-center justify-center gap-4 px-6 text-center"
-        >
-          <p className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
-            {state.message}
-          </p>
-        </motion.div>
-      </div>
+        <p className="text-sm font-light" style={{ color: "var(--foreground-faint)" }}>
+          {state.message}
+        </p>
+      </motion.div>
     );
   }
 
   const { token, years } = state;
 
   return (
-    <div className="relative">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+      className={`relative ${className}`}
+    >
       {backControl}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-        className={className}
+      <div className="flex w-full items-center justify-center bg-[var(--background-elevated)] p-6 pt-24 lg:w-2/3 lg:p-16">
+        {imageSrc ? (
+          // Wrapping div carries the fade so framer-motion's `animate`
+          // prop drives it — that's always guaranteed to play a
+          // transition on change, unlike a raw CSS transition tied to
+          // inline style + React state, which can silently collapse into
+          // an instant jump for a cached image. Every piece in the
+          // collection is 16:9, so the stage is fixed to that ratio
+          // (shrinking within max-h-[80vh] as needed) and object-cover
+          // fills it edge to edge — cropping is a non-issue once every
+          // source file is actually 16:9, but it also means older,
+          // not-yet-16:9 pieces still render at the right ratio now
+          // instead of pillarboxing into a visible square.
+          <motion.div
+            key={imageSrc}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: imageLoaded ? 1 : 0 }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
+            className="aspect-video max-h-[80vh] w-full max-w-full"
+          >
+            <Image
+              src={imageSrc}
+              alt={token.name}
+              width={1600}
+              height={900}
+              unoptimized
+              onLoad={onImageLoad}
+              onError={onImageError}
+              className="h-full w-full object-cover"
+            />
+          </motion.div>
+        ) : (
+          <div className="text-sm" style={{ color: "var(--foreground-faint)" }}>
+            {imageFailed ? "Image unavailable" : "No image"}
+          </div>
+        )}
+      </div>
+
+      <div
+        className="relative w-full border-t lg:h-full lg:w-1/3 lg:border-l lg:border-t-0"
+        style={{ borderColor: "var(--border-soft)" }}
       >
-        <div className="flex w-full items-center justify-center bg-[var(--background-elevated)] p-6 pt-24 lg:w-2/3 lg:p-16">
-          {imageSrc ? (
-            // Wrapping div carries the fade so framer-motion's `animate`
-            // prop drives it — that's always guaranteed to play a
-            // transition on change, unlike a raw CSS transition tied to
-            // inline style + React state, which can silently collapse into
-            // an instant jump for a cached image. Every piece in the
-            // collection is 16:9, so the stage is fixed to that ratio
-            // (shrinking within max-h-[80vh] as needed) and object-cover
-            // fills it edge to edge — cropping is a non-issue once every
-            // source file is actually 16:9, but it also means older,
-            // not-yet-16:9 pieces still render at the right ratio now
-            // instead of pillarboxing into a visible square.
-            <motion.div
-              key={imageSrc}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: imageLoaded ? 1 : 0 }}
-              transition={{ duration: 1.1, ease: "easeOut" }}
-              className="aspect-video max-h-[80vh] w-full max-w-full"
-            >
-              <Image
-                src={imageSrc}
-                alt={token.name}
-                width={1600}
-                height={900}
-                unoptimized
-                onLoad={onImageLoad}
-                onError={onImageError}
-                className="h-full w-full object-cover"
-              />
-            </motion.div>
-          ) : (
-            <div className="text-sm" style={{ color: "var(--foreground-faint)" }}>
-              {imageFailed ? "Image unavailable" : "No image"}
-            </div>
-          )}
-        </div>
-
-        <div
-          className="relative w-full border-t lg:h-full lg:w-1/3 lg:border-l lg:border-t-0"
-          style={{ borderColor: "var(--border-soft)" }}
-        >
-          <div ref={scrollContainerRef} className="no-scrollbar h-full w-full lg:overflow-y-auto">
-            <div className="px-6 pt-24 sm:px-10 lg:pt-16">
-              <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{token.name}</h1>
-            </div>
-
-            <AnswerPanel tokenId={token.tokenId} years={years} />
-            <div ref={scrollEndRef} className="h-px" />
+        <div ref={scrollContainerRef} className="no-scrollbar h-full w-full lg:overflow-y-auto">
+          <div className="px-6 pt-24 sm:px-10 lg:pt-16">
+            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{token.name}</h1>
           </div>
 
-          {showScrollHint && (
-            <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-16 lg:block"
-              style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }}
-            />
-          )}
+          <AnswerPanel tokenId={token.tokenId} years={years} />
+          <div ref={scrollEndRef} className="h-px" />
         </div>
-      </motion.div>
-    </div>
+
+        {showScrollHint && (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-16 lg:block"
+            style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }}
+          />
+        )}
+      </div>
+    </motion.div>
   );
 }

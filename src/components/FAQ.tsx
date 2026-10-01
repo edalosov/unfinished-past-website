@@ -20,7 +20,7 @@ function InlineLink({ href, children }: { href: string; children: ReactNode }) {
 const INTRO_PARAGRAPHS = [
   "Unfinished Past is a series of participatory time-based AI-generated artworks inspired by memories from strangers online, friends and family, and myself.",
   "Each one begins as a recognizable moment of a lived experience, and for the next seven years, will transform over time according to a single variable: whether its owner chooses to engage with it or not.",
-  "Once a year, a short question about the piece surfaces (to be answered on-chain). Owners can respond (to \"remember\"), or they can choose to do nothing (to \"forget\"). That decision, repeated or avoided year after year, determines how it changes.",
+  "Once a year, a short question about the piece surfaces (to be addressed on-chain). Owners can respond (to \"remember\"), or they can choose to do nothing (to \"forget\"). That decision, repeated or avoided year after year, determines how it changes.",
   "The final piece becomes a record of a seven-year relationship between a collector and their work of art.",
 ];
 
@@ -63,7 +63,7 @@ const FAQ_ITEMS: { question: string; answer: ReactNode }[] = [
     question: "I have another question that is not answered here, how can I contact you?",
     answer: (
       <>
-        Please send me a DM on <InlineLink href="https://x.com/Dalos">X @Dalos</InlineLink> or send me an email to{" "}
+        Please send me a DM on X <InlineLink href="https://x.com/Dalos">@Dalos</InlineLink> or send me an email to{" "}
         <InlineLink href="mailto:edov@dalosdov.com">edov@dalosdov.com</InlineLink>.
       </>
     ),
