@@ -37,6 +37,15 @@ model Question {
   @@index([startsAt, endsAt])
 }
 
+// How a holder is willing to have their answer surfaced outside the
+// admin's private export — chosen at submission time, alongside the
+// answer itself, and locked in with the rest of what they signed.
+enum SharePreference {
+  PRIVATE // don't share the answer or the holder's name
+  ANONYMOUS // share the answer, but not who wrote it
+  NAMED // share both the answer and the holder's name
+}
+
 // A wallet-signed answer to a question, scoped to a specific owned token.
 // Exactly one answer per (wallet, token, question) — once a holder
 // answers a given year's question for a piece, that year is locked in;
@@ -50,6 +59,7 @@ model Answer {
   questionId    String
   question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerText    String
+  sharePreference SharePreference @default(PRIVATE)
   signature     String
   createdAt     DateTime @default(now())
 

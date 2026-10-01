@@ -14,6 +14,7 @@ const bodySchema = z.object({
   walletAddress: z.string().refine(isAddress),
   tokenId: z.string().min(1),
   answerText: z.string().min(1).max(300),
+  sharePreference: z.enum(["PRIVATE", "ANONYMOUS", "NAMED"]),
   timestamp: z.number(),
   signature: z.string().startsWith("0x"),
 });
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
-  const { walletAddress, tokenId, answerText, timestamp, signature } = parsed.data;
+  const { walletAddress, tokenId, answerText, sharePreference, timestamp, signature } = parsed.data;
 
   const question = await getActiveQuestion();
   if (!question) {
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
     tokenId,
     questionText: question.text,
     answerText,
+    sharePreference,
     timestamp,
     signature: signature as Hex,
     claimedAddress: walletAddress,
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
         tokenName,
         questionId: question.id,
         answerText,
+        sharePreference,
         signature,
       },
       include: { question: true },

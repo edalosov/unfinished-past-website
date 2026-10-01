@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import type { SharePreference } from "@/generated/prisma/enums";
+
+const SHARE_LABELS: Record<SharePreference, string> = {
+  PRIVATE: "Do not share",
+  ANONYMOUS: "Share anonymously",
+  NAMED: "Share with name",
+};
 
 export async function GET() {
   const session = await getSession();
@@ -22,6 +29,7 @@ export async function GET() {
     { header: "Token ID", key: "tokenId", width: 12 },
     { header: "Question", key: "question", width: 50 },
     { header: "Answer", key: "answer", width: 60 },
+    { header: "Share preference", key: "sharePreference", width: 22 },
     { header: "Signed by (if delegate)", key: "signer", width: 44 },
     { header: "Submitted at", key: "submittedAt", width: 24 },
   ];
@@ -33,6 +41,7 @@ export async function GET() {
       tokenId: answer.tokenId,
       question: answer.question.text,
       answer: answer.answerText,
+      sharePreference: SHARE_LABELS[answer.sharePreference],
       signer: answer.signerAddress ?? "",
       submittedAt: answer.createdAt.toISOString(),
     });

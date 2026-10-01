@@ -53,7 +53,14 @@ export async function GET(
         startsAt: question.startsAt,
         endsAt: question.endsAt,
         status: question.status,
-        answer: answer ? { id: answer.id, answerText: answer.answerText, createdAt: answer.createdAt } : null,
+        answer: answer
+          ? {
+              id: answer.id,
+              answerText: answer.answerText,
+              sharePreference: answer.sharePreference,
+              createdAt: answer.createdAt,
+            }
+          : null,
       };
     });
 

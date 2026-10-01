@@ -5,6 +5,7 @@ export async function verifyAnswerSignature(params: {
   tokenId: string;
   questionText: string;
   answerText: string;
+  sharePreference: string;
   timestamp: number;
   signature: Hex;
   claimedAddress: string;

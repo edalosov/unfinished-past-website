@@ -6,6 +6,20 @@ import { buildAnswerMessage } from "@/lib/answerMessage";
 
 const MAX_LENGTH = 300;
 
+export type SharePreference = "PRIVATE" | "ANONYMOUS" | "NAMED";
+
+const SHARE_OPTIONS: { value: SharePreference; label: string }[] = [
+  { value: "PRIVATE", label: "Please do not share my answer nor my name." },
+  { value: "ANONYMOUS", label: "You can share my answer, but please do so anonymously." },
+  { value: "NAMED", label: "You can share my answer and my name, no problem with that." },
+];
+
+const SHARE_LABELS: Record<SharePreference, string> = {
+  PRIVATE: "Not shared",
+  ANONYMOUS: "Shared anonymously",
+  NAMED: "Shared with your name",
+};
+
 export type YearEntry = {
   yearNumber: number;
   questionId: string;
@@ -13,7 +27,7 @@ export type YearEntry = {
   startsAt: string;
   endsAt: string;
   status: "past" | "current" | "future";
-  answer: { id: string; answerText: string; createdAt: string } | null;
+  answer: { id: string; answerText: string; sharePreference: SharePreference; createdAt: string } | null;
 };
 
 function defaultYear(years: YearEntry[]): number {
@@ -35,6 +49,7 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
   const [localYears, setLocalYears] = useState(years);
   const [selectedYear, setSelectedYear] = useState(() => defaultYear(years));
   const [answerText, setAnswerText] = useState("");
+  const [sharePreference, setSharePreference] = useState<SharePreference>("PRIVATE");
   const [status, setStatus] = useState<"idle" | "signing" | "submitting" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +67,7 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
     if (year.status === "future") return;
     setSelectedYear(year.yearNumber);
     setAnswerText("");
+    setSharePreference("PRIVATE");
     setError(null);
     setStatus("idle");
   }
@@ -68,7 +84,7 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
       // a render-time impurity.
       // eslint-disable-next-line react-hooks/purity
       const timestamp = Date.now();
-      const message = buildAnswerMessage({ tokenId, questionText, answerText, timestamp });
+      const message = buildAnswerMessage({ tokenId, questionText, answerText, sharePreference, timestamp });
       const signature = await signMessageAsync({ message });
 
       setStatus("submitting");
@@ -79,6 +95,7 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
           walletAddress: address,
           tokenId,
           answerText,
+          sharePreference,
           timestamp,
           signature,
         }),
@@ -93,11 +110,20 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
       setLocalYears((prev) =>
         prev.map((y) =>
           y.yearNumber === selectedYear
-            ? { ...y, answer: { id: data.answer.id, answerText: data.answer.answerText, createdAt: data.answer.createdAt } }
+            ? {
+                ...y,
+                answer: {
+                  id: data.answer.id,
+                  answerText: data.answer.answerText,
+                  sharePreference: data.answer.sharePreference,
+                  createdAt: data.answer.createdAt,
+                },
+              }
             : y,
         ),
       );
       setAnswerText("");
+      setSharePreference("PRIVATE");
       setStatus("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -155,6 +181,9 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
                   <p className="mt-2 text-xs" style={{ color: "var(--foreground-faint)" }}>
                     Submitted {new Date(current.answer.createdAt).toLocaleString()}
                   </p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--foreground-faint)" }}>
+                    Sharing preference: {SHARE_LABELS[current.answer.sharePreference]}
+                  </p>
                   <hr className="mt-6 border-t" style={{ borderColor: "var(--border-soft)" }} />
                   <p className="mt-6 text-xs" style={{ color: "var(--foreground-muted)" }}>
                     You&apos;ve already submitted your answer for this year&apos;s question. Thank you for that!
@@ -183,7 +212,33 @@ export function AnswerPanel({ tokenId, years }: { tokenId: string; years: YearEn
                     className="mt-6 w-full resize-none rounded-md border bg-transparent px-4 py-3 text-sm leading-relaxed text-foreground outline-none focus:border-[var(--accent)]"
                     style={{ borderColor: "var(--border-soft)" }}
                   />
-                  <div className="mt-2 flex items-center justify-between">
+
+                  <fieldset className="mt-6">
+                    <legend className="text-xs uppercase tracking-widest" style={{ color: "var(--foreground-muted)" }}>
+                      Select one of the following
+                    </legend>
+                    <div className="mt-3 flex flex-col gap-2">
+                      {SHARE_OPTIONS.map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-start gap-2 text-sm leading-relaxed text-foreground"
+                        >
+                          <input
+                            type="radio"
+                            name="sharePreference"
+                            value={option.value}
+                            checked={sharePreference === option.value}
+                            onChange={() => setSharePreference(option.value)}
+                            className="mt-1 shrink-0"
+                            style={{ accentColor: "var(--accent)" }}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <div className="mt-6 flex items-center justify-between">
                     <span className="text-xs" style={{ color: "var(--foreground-faint)" }}>
                       {answerText.length}/{MAX_LENGTH}
                     </span>
