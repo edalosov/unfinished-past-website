@@ -32,7 +32,7 @@ export function GalleryStatusPanel({ currentQuestion }: { currentQuestion: Curre
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full lg:sticky lg:top-32 lg:w-72 xl:w-80"
+      className="w-full"
     >
       <div
         className="flex flex-col gap-6 border p-6 sm:p-8"

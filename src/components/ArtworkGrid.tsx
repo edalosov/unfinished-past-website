@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArtworkCard } from "@/components/ArtworkCard";
 import { GalleryCarousel } from "@/components/GalleryCarousel";
 import { GalleryStatusPanel, type CurrentQuestion } from "@/components/GalleryStatusPanel";
+import { FAQ } from "@/components/FAQ";
 import type { OwnedToken } from "@/lib/alchemy";
 
 type ViewMode = "grid" | "gallery";
@@ -132,8 +133,9 @@ export function ArtworkGrid() {
 
       {state.status === "ready" && (
         <div className="mt-12 flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-16">
-          <div className="order-1 lg:order-2">
+          <div className="order-1 flex flex-col gap-4 lg:order-2 lg:sticky lg:top-32 lg:w-72 xl:w-80">
             <GalleryStatusPanel currentQuestion={state.data.currentQuestion} />
+            <FAQ />
           </div>
 
           <div className="order-2 flex-1 lg:order-1">

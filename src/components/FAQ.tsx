@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const INTRO_PARAGRAPHS = [
@@ -97,44 +97,96 @@ function FAQItem({
   );
 }
 
-export function FAQSection() {
+function FAQPopup({ onClose }: { onClose: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto max-w-3xl px-6 pb-32 pt-24 sm:px-10 sm:pb-40 sm:pt-32"
-    >
-      <p className="text-xs uppercase tracking-widest" style={{ color: "var(--foreground-muted)" }}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-8">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 14 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="no-scrollbar relative z-10 max-h-[85dvh] w-full max-w-2xl overflow-y-auto border"
+        style={{ borderColor: "var(--border-soft)", background: "var(--background)" }}
+      >
+        <div className="px-6 py-10 sm:px-10">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-widest" style={{ color: "var(--foreground-muted)" }}>
+                FAQ
+              </p>
+              <h2 className="mt-3 font-display-italic-alt text-2xl italic leading-snug text-foreground sm:text-3xl">
+                Remind me how this all works, please.
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="shrink-0 text-2xl leading-none transition-colors hover:text-[var(--foreground)]"
+              style={{ color: "var(--foreground-muted)" }}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4">
+            {INTRO_PARAGRAPHS.map((paragraph, i) => (
+              <p key={i} className="text-sm font-light leading-relaxed" style={{ color: "var(--foreground-muted)" }}>
+                {paragraph}
+              </p>
+            ))}
+          </div>
+
+          <div className="mt-10">
+            {FAQ_ITEMS.map((item, i) => (
+              <FAQItem
+                key={item.question}
+                question={item.question}
+                answer={item.answer}
+                isOpen={openIndex === i}
+                onToggle={() => setOpenIndex((prev) => (prev === i ? null : i))}
+              />
+            ))}
+            <div className="border-t" style={{ borderColor: "var(--border-soft)" }} />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+export function FAQ() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <button type="button" onClick={() => setIsOpen(true)} className="gallery-connect-btn w-full">
         FAQ
-      </p>
-      <h2 className="mt-3 font-display-italic-alt text-2xl italic leading-snug text-foreground sm:text-3xl">
-        Remind me how this all works, please.
-      </h2>
-
-      <div className="mt-6 flex flex-col gap-4">
-        {INTRO_PARAGRAPHS.map((paragraph, i) => (
-          <p key={i} className="text-sm font-light leading-relaxed" style={{ color: "var(--foreground-muted)" }}>
-            {paragraph}
-          </p>
-        ))}
-      </div>
-
-      <div className="mt-12">
-        {FAQ_ITEMS.map((item, i) => (
-          <FAQItem
-            key={item.question}
-            question={item.question}
-            answer={item.answer}
-            isOpen={openIndex === i}
-            onToggle={() => setOpenIndex((prev) => (prev === i ? null : i))}
-          />
-        ))}
-        <div className="border-t" style={{ borderColor: "var(--border-soft)" }} />
-      </div>
-    </motion.section>
+      </button>
+      <AnimatePresence>{isOpen && <FAQPopup onClose={() => setIsOpen(false)} />}</AnimatePresence>
+    </>
   );
 }
