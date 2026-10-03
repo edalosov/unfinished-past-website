@@ -4,12 +4,12 @@ import { useState } from "react";
 
 export function InspectTokenTool() {
   const [tokenId, setTokenId] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"inspect" | "refresh" | null>(null);
   const [result, setResult] = useState<string | null>(null);
 
   async function handleInspect() {
     if (!tokenId) return;
-    setBusy(true);
+    setBusy("inspect");
     setResult(null);
 
     try {
@@ -23,8 +23,35 @@ export function InspectTokenTool() {
     } catch {
       setResult("Could not reach the server. Check your connection and try again.");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
+  }
+
+  async function handleRefresh() {
+    if (!tokenId) return;
+    setBusy("refresh");
+    setResult(null);
+
+    try {
+      const res = await fetch("/api/admin/refresh-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tokenId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setResult(data.error || `Failed to refresh token (HTTP ${res.status})`);
+        return;
+      }
+    } catch {
+      setResult("Could not reach the server. Check your connection and try again.");
+      setBusy(null);
+      return;
+    }
+
+    // Alchemy's refresh resolves once its own cache is updated, so
+    // inspecting right after shows the result of the refresh immediately.
+    await handleInspect();
   }
 
   return (
@@ -34,7 +61,9 @@ export function InspectTokenTool() {
       </h2>
       <p className="text-xs" style={{ color: "var(--foreground-faint)" }}>
         Shows everything Alchemy has on file for one token&apos;s image, plus the raw metadata it was parsed
-        from — useful for figuring out why a specific piece is showing up wrong.
+        from — useful for figuring out why a specific piece is showing up wrong. If the metadata behind a
+        token changed (e.g. the image was swapped in-place) but Alchemy hasn&apos;t noticed yet, use Refresh
+        to make it re-check, then Inspect to confirm.
       </p>
       <div className="flex gap-3">
         <input
@@ -47,10 +76,18 @@ export function InspectTokenTool() {
         <button
           type="button"
           onClick={handleInspect}
-          disabled={busy || !tokenId}
+          disabled={busy !== null || !tokenId}
           className="gallery-connect-btn disabled:opacity-40"
         >
-          {busy ? "Looking…" : "Inspect"}
+          {busy === "inspect" ? "Looking…" : "Inspect"}
+        </button>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={busy !== null || !tokenId}
+          className="gallery-connect-btn disabled:opacity-40"
+        >
+          {busy === "refresh" ? "Refreshing…" : "Refresh"}
         </button>
       </div>
       {result && (
