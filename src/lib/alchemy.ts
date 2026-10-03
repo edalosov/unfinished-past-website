@@ -1,8 +1,16 @@
 import { Alchemy, Network } from "alchemy-sdk";
+import { createPublicClient, http, type Address } from "viem";
+import { mainnet, sepolia } from "viem/chains";
 
 const networkForChainId: Record<number, Network> = {
   1: Network.ETH_MAINNET,
   11155111: Network.ETH_SEPOLIA,
+};
+
+const viemChainForId = { 1: mainnet, 11155111: sepolia } as const;
+const alchemyRpcSubdomainForId: Record<number, string> = {
+  1: "eth-mainnet",
+  11155111: "eth-sepolia",
 };
 
 function alchemyForChain(chainId: number) {
@@ -13,6 +21,51 @@ function alchemyForChain(chainId: number) {
   return new Alchemy({ apiKey, network });
 }
 
+function viemClientForChain(chainId: number) {
+  const chain = viemChainForId[chainId as keyof typeof viemChainForId];
+  const subdomain = alchemyRpcSubdomainForId[chainId];
+  if (!chain || !subdomain) throw new Error(`Unsupported chainId: ${chainId}`);
+  const apiKey = process.env.ALCHEMY_API_KEY;
+  if (!apiKey) throw new Error("ALCHEMY_API_KEY is not set");
+  return createPublicClient({ chain, transport: http(`https://${subdomain}.g.alchemy.com/v2/${apiKey}`) });
+}
+
+const tokenUriAbi = [
+  {
+    name: "tokenURI",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ name: "", type: "string" }],
+  },
+] as const;
+
+// Reads the token's tokenURI straight from the contract instead of trusting
+// Alchemy's own indexed copy of it (raw.tokenUri). That copy is what kept
+// lagging behind real on-chain changes in testing — once an artist updates
+// a token's metadata pointer, Alchemy can take a while (and its own cooldown)
+// to notice. A direct contract read always reflects current chain state, so
+// there's nothing to wait on. Falls back to null on any failure (bad
+// contract, network hiccup) so the caller can fall back to Alchemy's copy.
+async function getOnChainTokenUri(
+  contractAddress: string,
+  tokenId: string,
+  chainId: number,
+): Promise<string | null> {
+  try {
+    const client = viemClientForChain(chainId);
+    const uri = await client.readContract({
+      address: contractAddress as Address,
+      abi: tokenUriAbi,
+      functionName: "tokenURI",
+      args: [BigInt(tokenId)],
+    });
+    return typeof uri === "string" && uri.length > 0 ? uri : null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("ipfs://")) {
@@ -21,18 +74,19 @@ function normalizeImageUrl(url: string | null | undefined): string | null {
   return url;
 }
 
-// For this contract, Alchemy's own `image`/`raw.metadata` fields turned out
-// to be unreliable: inspecting a token directly showed `image: {}` (totally
-// empty) and `raw.metadata` populated with OpenSea's catalog shape
+// Alchemy's own `image`/`raw.metadata` fields turned out to be unreliable
+// for at least one contract: inspecting a token directly showed `image: {}`
+// (totally empty) and `raw.metadata` populated with OpenSea's catalog shape
 // (identifier/collection/opensea_url/owners/…) instead of the token's real
-// metadata JSON — meaning Alchemy substituted OpenSea's own cache for this
-// collection rather than reading the actual tokenURI, and that cache is
-// missing or square-cropped. `raw.tokenUri` is the one field that still
-// reflects the genuine on-chain pointer, so fetch it ourselves and read its
-// real "image" field directly, bypassing Alchemy's broken indexing for this
-// contract entirely. Failures here (network hiccup, bad tokenUri) just fall
-// back to whatever Alchemy did resolve.
-async function fetchTokenUriImage(tokenUri: string | undefined): Promise<string | null> {
+// metadata JSON — Alchemy had substituted OpenSea's own cache rather than
+// reading the actual tokenURI. Fetching the tokenURI's content ourselves
+// sidesteps that, but still needed Alchemy's raw.tokenUri to know *what*
+// the tokenURI is — and that field can itself lag behind an on-chain change
+// (see getOnChainTokenUri). So this takes a tokenUri we've already resolved
+// (on-chain, ideally) and just reads its real "image" field directly.
+// Failures here (network hiccup, bad tokenUri) return null for the caller
+// to fall back to Alchemy's own candidates.
+async function fetchTokenUriImage(tokenUri: string | null | undefined): Promise<string | null> {
   const url = normalizeImageUrl(tokenUri);
   if (!url) return null;
   try {
@@ -48,17 +102,24 @@ async function fetchTokenUriImage(tokenUri: string | undefined): Promise<string 
 // Alchemy's cachedUrl is its own resized/recompressed copy, optimized for
 // small marketplace thumbnails (often center-cropped to a square besides),
 // which is a bad look blown up into the large single-piece views — so it's
-// tried last, as the true last resort. The directly-fetched tokenUri image
-// comes first since it's the one source that can't be mangled by Alchemy's
-// own indexing; originalUrl and raw.metadata.image are kept as a fallback
-// in between for when the direct fetch fails (useFallbackImage already
-// cascades to the next candidate on a load failure, so keeping all of them
-// costs nothing).
-async function candidateImages(nft: {
-  image?: { cachedUrl?: string; originalUrl?: string };
-  raw?: { metadata?: { image?: string }; tokenUri?: string };
-}): Promise<string[]> {
-  const directImage = await fetchTokenUriImage(nft.raw?.tokenUri);
+// tried last, as the true last resort. The directly-fetched image comes
+// first, read from the tokenURI as it exists on-chain right now (not
+// Alchemy's indexed copy of it), since that's the one source that can't be
+// stale or mangled by Alchemy's own indexing. originalUrl and
+// raw.metadata.image are kept as a fallback in between for when the direct
+// fetch fails (useFallbackImage already cascades to the next candidate on
+// a load failure, so keeping all of them costs nothing).
+async function candidateImages(
+  nft: {
+    image?: { cachedUrl?: string; originalUrl?: string };
+    raw?: { metadata?: { image?: string }; tokenUri?: string };
+  },
+  contractAddress: string,
+  tokenId: string,
+  chainId: number,
+): Promise<string[]> {
+  const onChainTokenUri = await getOnChainTokenUri(contractAddress, tokenId, chainId);
+  const directImage = await fetchTokenUriImage(onChainTokenUri ?? nft.raw?.tokenUri);
   const candidates = [directImage, nft.image?.originalUrl, nft.raw?.metadata?.image, nft.image?.cachedUrl]
     .map(normalizeImageUrl)
     .filter((url): url is string => url !== null);
@@ -85,7 +146,7 @@ export async function getOwnedTokens(
     response.ownedNfts.map(async (nft) => ({
       tokenId: nft.tokenId,
       name: nft.name || nft.raw?.metadata?.name || `#${nft.tokenId}`,
-      images: await candidateImages(nft),
+      images: await candidateImages(nft, contractAddress, nft.tokenId, chainId),
     })),
   );
 }
@@ -110,7 +171,7 @@ export async function getTokenMetadata(
   return {
     tokenId,
     name: nft.name || nft.raw?.metadata?.name || `#${tokenId}`,
-    images: await candidateImages(nft),
+    images: await candidateImages(nft, contractAddress, tokenId, chainId),
   };
 }
 
@@ -139,12 +200,14 @@ export async function getRawTokenMetadata(
 ) {
   const alchemy = alchemyForChain(chainId);
   const nft = await alchemy.nft.getNftMetadata(contractAddress, tokenId);
+  const onChainTokenUri = await getOnChainTokenUri(contractAddress, tokenId, chainId);
   return {
     name: nft.name ?? null,
     image: nft.image ?? null,
-    tokenUri: nft.raw?.tokenUri ?? null,
+    alchemyCachedTokenUri: nft.raw?.tokenUri ?? null,
+    onChainTokenUri,
     rawMetadataError: nft.raw?.error ?? null,
     rawMetadata: nft.raw?.metadata ?? null,
-    directImageFromTokenUri: await fetchTokenUriImage(nft.raw?.tokenUri),
+    directImageFromTokenUri: await fetchTokenUriImage(onChainTokenUri ?? nft.raw?.tokenUri),
   };
 }
