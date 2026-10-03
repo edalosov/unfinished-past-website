@@ -127,35 +127,6 @@ export async function refreshTokenMetadata(
   return alchemy.nft.refreshNftMetadata(contractAddress, tokenId);
 }
 
-// Walks every token in the contract (not just ones a wallet happens to
-// hold, and not just ones someone has actually opened in the app) and
-// asks Alchemy to re-cache each one. Meant for right after pointing the
-// gallery at a new/freshly-indexed contract, where waiting for individual
-// holders to view a broken piece — the per-piece self-heal everywhere
-// else in the app relies on — isn't fast or reliable enough on its own.
-// refreshNftMetadata's own return value (whether its cached timestamp
-// moved) isn't a reliable success signal, so this just reports how many
-// tokens a refresh was requested for, not how many "changed."
-export async function refreshAllTokenMetadata(
-  contractAddress: string,
-  chainId: number,
-): Promise<{ total: number }> {
-  const alchemy = alchemyForChain(chainId);
-
-  const tokenIds: string[] = [];
-  for await (const nft of alchemy.nft.getNftsForContractIterator(contractAddress, { omitMetadata: true })) {
-    tokenIds.push(nft.tokenId);
-  }
-
-  const concurrency = 5;
-  for (let i = 0; i < tokenIds.length; i += concurrency) {
-    const batch = tokenIds.slice(i, i + concurrency);
-    await Promise.all(batch.map((tokenId) => alchemy.nft.refreshNftMetadata(contractAddress, tokenId).catch(() => false)));
-  }
-
-  return { total: tokenIds.length };
-}
-
 // Returns every image-related field Alchemy has for one token, plus the
 // raw, unprocessed metadata JSON and the tokenURI it came from — for
 // figuring out which field (if any) actually points at the real

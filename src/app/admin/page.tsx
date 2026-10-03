@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { getGalleryConfig } from "@/lib/config";
 import { AdminForm } from "@/components/AdminForm";
-import { RefreshImagesTool } from "@/components/RefreshImagesTool";
 import { InspectTokenTool } from "@/components/InspectTokenTool";
 import { FadeIn } from "@/components/FadeIn";
 
@@ -20,10 +19,6 @@ export default async function AdminPage() {
       <FadeIn>
         <h1 className="font-display text-3xl italic text-foreground">Gallery settings</h1>
         <AdminForm initialContractAddress={config.nftContractAddress ?? ""} initialChainId={config.chainId} />
-
-        <div className="mt-14 border-t pt-14" style={{ borderColor: "var(--border-soft)" }}>
-          <RefreshImagesTool />
-        </div>
 
         <div className="mt-14 border-t pt-14" style={{ borderColor: "var(--border-soft)" }}>
           <InspectTokenTool />
