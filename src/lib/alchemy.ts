@@ -104,34 +104,20 @@ export async function refreshTokenMetadata(
   return alchemy.nft.refreshNftMetadata(contractAddress, tokenId);
 }
 
-// Walks every token in the contract (not just ones a wallet happens to
-// hold, and not just ones someone has actually opened in the app) and
-// asks Alchemy to re-cache each one. Meant for right after pointing the
-// gallery at a new/freshly-indexed contract, where waiting for individual
-// holders to view a broken piece — the per-piece self-heal everywhere
-// else in the app relies on — isn't fast or reliable enough on its own.
-// Small concurrency limit to stay well clear of Alchemy's rate limits
-// across what could be a few hundred tokens.
-export async function refreshAllTokenMetadata(
+// Asks Alchemy to fully re-ingest the whole contract from origin — a
+// single async job on Alchemy's side that re-crawls every token's
+// metadata, rather than looping per-token refreshes (refreshNftMetadata
+// only reports a change when its *cached timestamp* moves, which is a
+// poor signal for "did this actually get fixed," and doesn't force a deep
+// re-crawl the way a full contract reingestion does). This is the right
+// tool for right after pointing the gallery at a new/freshly-indexed
+// contract. The job runs in the background on Alchemy's side; calling
+// this again later is safe and just reports current progress.
+export async function refreshContractMetadata(
   contractAddress: string,
   chainId: number,
-): Promise<{ total: number; refreshed: number }> {
+): Promise<{ refreshState: string; progress: string | null }> {
   const alchemy = alchemyForChain(chainId);
-
-  const tokenIds: string[] = [];
-  for await (const nft of alchemy.nft.getNftsForContractIterator(contractAddress, { omitMetadata: true })) {
-    tokenIds.push(nft.tokenId);
-  }
-
-  const concurrency = 5;
-  let refreshed = 0;
-  for (let i = 0; i < tokenIds.length; i += concurrency) {
-    const batch = tokenIds.slice(i, i + concurrency);
-    const results = await Promise.all(
-      batch.map((tokenId) => alchemy.nft.refreshNftMetadata(contractAddress, tokenId).catch(() => false)),
-    );
-    refreshed += results.filter(Boolean).length;
-  }
-
-  return { total: tokenIds.length, refreshed };
+  const result = await alchemy.nft.refreshContract(contractAddress);
+  return { refreshState: result.refreshState, progress: result.progress };
 }
