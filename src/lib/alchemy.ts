@@ -23,16 +23,22 @@ function normalizeImageUrl(url: string | null | undefined): string | null {
 
 // The original source file is what was actually uploaded for the piece —
 // Alchemy's cachedUrl is its own resized/recompressed copy, optimized for
-// small marketplace thumbnails, which looks soft/blurry blown up into the
-// large single-piece views. Preferring the original for quality is safe
-// because useFallbackImage already cascades to the next candidate on a
-// load failure, so this doesn't trade away the reliability cachedUrl was
-// originally chosen for — it's just no longer tried first.
+// small marketplace thumbnails (often center-cropped to a square besides),
+// which is a bad look blown up into the large single-piece views. Preferring
+// real sources for quality is safe because useFallbackImage already
+// cascades to the next candidate on a load failure, so this doesn't trade
+// away the reliability cachedUrl was originally chosen for — it's just
+// tried last now, as the true last resort. raw.metadata.image is the
+// literal, unprocessed value from the token's own metadata; Alchemy's
+// `originalUrl` is normally the same thing after their own normalization,
+// but can be null when a token's metadata hasn't fully finished indexing
+// yet even though the raw fetch already succeeded, so it's kept as a
+// second-best real source rather than skipped straight to cachedUrl.
 function candidateImages(nft: {
   image?: { cachedUrl?: string; originalUrl?: string };
   raw?: { metadata?: { image?: string } };
 }): string[] {
-  const candidates = [nft.image?.originalUrl, nft.image?.cachedUrl, nft.raw?.metadata?.image]
+  const candidates = [nft.image?.originalUrl, nft.raw?.metadata?.image, nft.image?.cachedUrl]
     .map(normalizeImageUrl)
     .filter((url): url is string => url !== null);
   return [...new Set(candidates)];
@@ -96,4 +102,36 @@ export async function refreshTokenMetadata(
 ): Promise<boolean> {
   const alchemy = alchemyForChain(chainId);
   return alchemy.nft.refreshNftMetadata(contractAddress, tokenId);
+}
+
+// Walks every token in the contract (not just ones a wallet happens to
+// hold, and not just ones someone has actually opened in the app) and
+// asks Alchemy to re-cache each one. Meant for right after pointing the
+// gallery at a new/freshly-indexed contract, where waiting for individual
+// holders to view a broken piece — the per-piece self-heal everywhere
+// else in the app relies on — isn't fast or reliable enough on its own.
+// Small concurrency limit to stay well clear of Alchemy's rate limits
+// across what could be a few hundred tokens.
+export async function refreshAllTokenMetadata(
+  contractAddress: string,
+  chainId: number,
+): Promise<{ total: number; refreshed: number }> {
+  const alchemy = alchemyForChain(chainId);
+
+  const tokenIds: string[] = [];
+  for await (const nft of alchemy.nft.getNftsForContractIterator(contractAddress, { omitMetadata: true })) {
+    tokenIds.push(nft.tokenId);
+  }
+
+  const concurrency = 5;
+  let refreshed = 0;
+  for (let i = 0; i < tokenIds.length; i += concurrency) {
+    const batch = tokenIds.slice(i, i + concurrency);
+    const results = await Promise.all(
+      batch.map((tokenId) => alchemy.nft.refreshNftMetadata(contractAddress, tokenId).catch(() => false)),
+    );
+    refreshed += results.filter(Boolean).length;
+  }
+
+  return { total: tokenIds.length, refreshed };
 }
