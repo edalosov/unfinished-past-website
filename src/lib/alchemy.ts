@@ -21,24 +21,45 @@ function normalizeImageUrl(url: string | null | undefined): string | null {
   return url;
 }
 
-// The original source file is what was actually uploaded for the piece —
+// For this contract, Alchemy's own `image`/`raw.metadata` fields turned out
+// to be unreliable: inspecting a token directly showed `image: {}` (totally
+// empty) and `raw.metadata` populated with OpenSea's catalog shape
+// (identifier/collection/opensea_url/owners/…) instead of the token's real
+// metadata JSON — meaning Alchemy substituted OpenSea's own cache for this
+// collection rather than reading the actual tokenURI, and that cache is
+// missing or square-cropped. `raw.tokenUri` is the one field that still
+// reflects the genuine on-chain pointer, so fetch it ourselves and read its
+// real "image" field directly, bypassing Alchemy's broken indexing for this
+// contract entirely. Failures here (network hiccup, bad tokenUri) just fall
+// back to whatever Alchemy did resolve.
+async function fetchTokenUriImage(tokenUri: string | undefined): Promise<string | null> {
+  const url = normalizeImageUrl(tokenUri);
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const metadata = await res.json();
+    return normalizeImageUrl(metadata?.image ?? metadata?.image_url ?? null);
+  } catch {
+    return null;
+  }
+}
+
 // Alchemy's cachedUrl is its own resized/recompressed copy, optimized for
 // small marketplace thumbnails (often center-cropped to a square besides),
-// which is a bad look blown up into the large single-piece views. Preferring
-// real sources for quality is safe because useFallbackImage already
-// cascades to the next candidate on a load failure, so this doesn't trade
-// away the reliability cachedUrl was originally chosen for — it's just
-// tried last now, as the true last resort. raw.metadata.image is the
-// literal, unprocessed value from the token's own metadata; Alchemy's
-// `originalUrl` is normally the same thing after their own normalization,
-// but can be null when a token's metadata hasn't fully finished indexing
-// yet even though the raw fetch already succeeded, so it's kept as a
-// second-best real source rather than skipped straight to cachedUrl.
-function candidateImages(nft: {
+// which is a bad look blown up into the large single-piece views — so it's
+// tried last, as the true last resort. The directly-fetched tokenUri image
+// comes first since it's the one source that can't be mangled by Alchemy's
+// own indexing; originalUrl and raw.metadata.image are kept as a fallback
+// in between for when the direct fetch fails (useFallbackImage already
+// cascades to the next candidate on a load failure, so keeping all of them
+// costs nothing).
+async function candidateImages(nft: {
   image?: { cachedUrl?: string; originalUrl?: string };
-  raw?: { metadata?: { image?: string } };
-}): string[] {
-  const candidates = [nft.image?.originalUrl, nft.raw?.metadata?.image, nft.image?.cachedUrl]
+  raw?: { metadata?: { image?: string }; tokenUri?: string };
+}): Promise<string[]> {
+  const directImage = await fetchTokenUriImage(nft.raw?.tokenUri);
+  const candidates = [directImage, nft.image?.originalUrl, nft.raw?.metadata?.image, nft.image?.cachedUrl]
     .map(normalizeImageUrl)
     .filter((url): url is string => url !== null);
   return [...new Set(candidates)];
@@ -60,11 +81,13 @@ export async function getOwnedTokens(
     contractAddresses: [contractAddress],
   });
 
-  return response.ownedNfts.map((nft) => ({
-    tokenId: nft.tokenId,
-    name: nft.name || nft.raw?.metadata?.name || `#${nft.tokenId}`,
-    images: candidateImages(nft),
-  }));
+  return Promise.all(
+    response.ownedNfts.map(async (nft) => ({
+      tokenId: nft.tokenId,
+      name: nft.name || nft.raw?.metadata?.name || `#${nft.tokenId}`,
+      images: await candidateImages(nft),
+    })),
+  );
 }
 
 export async function resolveTokenOwner(
@@ -87,7 +110,7 @@ export async function getTokenMetadata(
   return {
     tokenId,
     name: nft.name || nft.raw?.metadata?.name || `#${tokenId}`,
-    images: candidateImages(nft),
+    images: await candidateImages(nft),
   };
 }
 
@@ -151,5 +174,6 @@ export async function getRawTokenMetadata(
     tokenUri: nft.raw?.tokenUri ?? null,
     rawMetadataError: nft.raw?.error ?? null,
     rawMetadata: nft.raw?.metadata ?? null,
+    directImageFromTokenUri: await fetchTokenUriImage(nft.raw?.tokenUri),
   };
 }
