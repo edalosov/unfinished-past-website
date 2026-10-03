@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { getGalleryConfig } from "@/lib/config";
 import { AdminForm } from "@/components/AdminForm";
 import { RefreshImagesTool } from "@/components/RefreshImagesTool";
+import { InspectTokenTool } from "@/components/InspectTokenTool";
 import { FadeIn } from "@/components/FadeIn";
 
 export default async function AdminPage() {
@@ -22,6 +23,10 @@ export default async function AdminPage() {
 
         <div className="mt-14 border-t pt-14" style={{ borderColor: "var(--border-soft)" }}>
           <RefreshImagesTool />
+        </div>
+
+        <div className="mt-14 border-t pt-14" style={{ borderColor: "var(--border-soft)" }}>
+          <InspectTokenTool />
         </div>
 
         <div className="mt-14 flex gap-6 border-t pt-14" style={{ borderColor: "var(--border-soft)" }}>

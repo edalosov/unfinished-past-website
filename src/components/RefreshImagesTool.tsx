@@ -8,7 +8,7 @@ export function RefreshImagesTool() {
 
   async function handleRefresh() {
     setBusy(true);
-    setStatus("Asking Alchemy to re-ingest the whole collection…");
+    setStatus("Asking Alchemy to re-cache every piece in the collection…");
 
     try {
       const res = await fetch("/api/admin/refresh-images", { method: "POST" });
@@ -19,14 +19,11 @@ export function RefreshImagesTool() {
         return;
       }
 
-      const data: { refreshState: string; progress: string | null } = await res.json();
-      const messages: Record<string, string> = {
-        does_not_exist: "Alchemy doesn't recognize this contract — double-check the address.",
-        already_queued: "Already queued for re-ingestion — check back shortly.",
-        in_progress: `Re-ingestion in progress${data.progress ? ` (${data.progress}% done)` : ""}. Click again in a minute to check progress.`,
-        finished: "Re-ingestion finished. Reload the gallery to check.",
-      };
-      setStatus(messages[data.refreshState] || `Status: ${data.refreshState}`);
+      const data: { total: number } = await res.json();
+      setStatus(
+        `Requested a refresh for all ${data.total} token${data.total === 1 ? "" : "s"}. ` +
+          "Alchemy takes a few minutes to re-crawl each one — reload the gallery shortly to check.",
+      );
     } catch {
       setStatus("Could not reach the server. Check your connection and try again.");
     } finally {
@@ -40,10 +37,8 @@ export function RefreshImagesTool() {
         Images
       </h2>
       <p className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-        Asks Alchemy to fully re-ingest the whole collection from the original source, instead of waiting for
-        someone to view a broken piece first. Worth running once right after pointing at a new contract. This
-        runs as a background job on Alchemy&apos;s side — it can take a little while for a large collection, so
-        click again to check progress.
+        Walks every token in the collection and asks Alchemy to re-fetch its image, instead of waiting for
+        someone to view a broken piece first. Worth running once right after pointing at a new contract.
       </p>
       <button type="button" onClick={handleRefresh} disabled={busy} className="gallery-connect-btn self-start disabled:opacity-40">
         {busy ? "Refreshing…" : "Refresh all images"}
