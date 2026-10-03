@@ -35,14 +35,17 @@ function ArrowButton({
 }
 
 function CarouselSlide({ token, answered }: { token: OwnedToken; answered?: boolean }) {
-  const { src, failed, loaded, onLoad, onError } = useFallbackImage(token.images, token.tokenId);
+  const { src, failed, hasCandidates, loaded, onLoad, onError } = useFallbackImage(token.images, token.tokenId);
   const reported = useRef(false);
 
   useEffect(() => {
-    if (!failed || reported.current) return;
+    // Covers both cases that mean Alchemy's cached metadata is stale: every
+    // candidate failing to load (failed), and Alchemy never having cached
+    // any image URL for this token at all (!hasCandidates).
+    if ((!failed && hasCandidates) || reported.current) return;
     reported.current = true;
     fetch(`/api/art/${token.tokenId}/refresh-image`, { method: "POST" }).catch(() => {});
-  }, [failed, token.tokenId]);
+  }, [failed, hasCandidates, token.tokenId]);
 
   return (
     <Link href={`/art/${token.tokenId}`} className="group block">
@@ -59,7 +62,7 @@ function CarouselSlide({ token, answered }: { token: OwnedToken; answered?: bool
             initial={{ opacity: 0 }}
             animate={{ opacity: loaded ? 1 : 0 }}
             transition={{ duration: 1.1, ease: "easeOut" }}
-            className="block aspect-video w-full object-cover"
+            className="block aspect-video w-full object-contain"
           />
         ) : (
           <div

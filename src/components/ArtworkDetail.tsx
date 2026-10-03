@@ -45,18 +45,27 @@ export function ArtworkDetail({
   const { status: verification, error: verifyError, verify } = useWalletVerification();
   const [state, setState] = useState<DetailState>({ status: "loading" });
   const imageCandidates = state.status === "ready" ? state.token.images : [];
-  const { src: imageSrc, failed: imageFailed, loaded: imageLoaded, onLoad: onImageLoad, onError: onImageError } =
-    useFallbackImage(imageCandidates, tokenId);
+  const {
+    src: imageSrc,
+    failed: imageFailed,
+    hasCandidates: imageHasCandidates,
+    loaded: imageLoaded,
+    onLoad: onImageLoad,
+    onError: onImageError,
+  } = useFallbackImage(imageCandidates, tokenId);
   const reportedImageFailure = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
   useEffect(() => {
-    if (!imageFailed || reportedImageFailure.current) return;
+    // Covers both cases that mean Alchemy's cached metadata is stale: every
+    // candidate failing to load (imageFailed), and Alchemy never having
+    // cached any image URL for this token at all (!imageHasCandidates).
+    if ((!imageFailed && imageHasCandidates) || reportedImageFailure.current) return;
     reportedImageFailure.current = true;
     fetch(`/api/art/${tokenId}/refresh-image`, { method: "POST" }).catch(() => {});
-  }, [imageFailed, tokenId]);
+  }, [imageFailed, imageHasCandidates, tokenId]);
 
   useEffect(() => {
     // On a fresh page load (direct link, refresh), wagmi's wallet reconnect
@@ -196,12 +205,10 @@ export function ArtworkDetail({
           // transition on change, unlike a raw CSS transition tied to
           // inline style + React state, which can silently collapse into
           // an instant jump for a cached image. Every piece in the
-          // collection is 16:9, so the stage is fixed to that ratio
-          // (shrinking within max-h-[80vh] as needed) and object-cover
-          // fills it edge to edge — cropping is a non-issue once every
-          // source file is actually 16:9, but it also means older,
-          // not-yet-16:9 pieces still render at the right ratio now
-          // instead of pillarboxing into a visible square.
+          // collection is meant to be 16:9, so the stage is fixed to that
+          // ratio (shrinking within max-h-[80vh] as needed), but
+          // object-contain (not cover) means a piece that isn't
+          // pixel-exact never gets cropped — it just letterboxes instead.
           <motion.div
             key={imageSrc}
             initial={{ opacity: 0 }}
@@ -217,7 +224,7 @@ export function ArtworkDetail({
               unoptimized
               onLoad={onImageLoad}
               onError={onImageError}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </motion.div>
         ) : (

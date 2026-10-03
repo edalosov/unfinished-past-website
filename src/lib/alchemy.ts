@@ -21,16 +21,18 @@ function normalizeImageUrl(url: string | null | undefined): string | null {
   return url;
 }
 
-// Alchemy's own cached copy of an NFT's image occasionally fails to load
-// even though it returned a URL for it (their caching pipeline attempted
-// it and the result is broken) — so we keep every candidate source, in
-// order of preference, and let the client fall through to the next one on
-// a load failure instead of trusting the first URL alone.
+// The original source file is what was actually uploaded for the piece —
+// Alchemy's cachedUrl is its own resized/recompressed copy, optimized for
+// small marketplace thumbnails, which looks soft/blurry blown up into the
+// large single-piece views. Preferring the original for quality is safe
+// because useFallbackImage already cascades to the next candidate on a
+// load failure, so this doesn't trade away the reliability cachedUrl was
+// originally chosen for — it's just no longer tried first.
 function candidateImages(nft: {
   image?: { cachedUrl?: string; originalUrl?: string };
   raw?: { metadata?: { image?: string } };
 }): string[] {
-  const candidates = [nft.image?.cachedUrl, nft.image?.originalUrl, nft.raw?.metadata?.image]
+  const candidates = [nft.image?.originalUrl, nft.image?.cachedUrl, nft.raw?.metadata?.image]
     .map(normalizeImageUrl)
     .filter((url): url is string => url !== null);
   return [...new Set(candidates)];

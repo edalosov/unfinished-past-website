@@ -19,14 +19,19 @@ export function ArtworkCard({
   // only, or the "right," way to spend time with a piece.
   answered?: boolean;
 }) {
-  const { src, failed, loaded, onLoad, onError } = useFallbackImage(token.images, token.tokenId);
+  const { src, failed, hasCandidates, loaded, onLoad, onError } = useFallbackImage(token.images, token.tokenId);
   const reported = useRef(false);
 
   useEffect(() => {
-    if (!failed || reported.current) return;
+    // Covers both cases that mean Alchemy's cached metadata is stale: every
+    // candidate failing to load (failed), and Alchemy never having cached
+    // any image URL for this token at all (!hasCandidates) — the latter
+    // used to never trigger a refresh, leaving it stuck on "No image"
+    // indefinitely.
+    if ((!failed && hasCandidates) || reported.current) return;
     reported.current = true;
     fetch(`/api/art/${token.tokenId}/refresh-image`, { method: "POST" }).catch(() => {});
-  }, [failed, token.tokenId]);
+  }, [failed, hasCandidates, token.tokenId]);
 
   return (
     <motion.div
@@ -41,13 +46,15 @@ export function ArtworkCard({
         >
           {src ? (
             // motion.img, not next/image: these come from arbitrary
-            // external hosts. Every piece in the collection is 16:9, so the
-            // frame is fixed to that ratio rather than sized off whatever
-            // the file reports. Fading via framer-motion's `animate` prop
-            // (rather than a raw CSS transition tied to inline style state)
-            // guarantees the transition actually plays even for a cached
-            // image, where the load event can otherwise fire before the
-            // hidden frame is ever painted.
+            // external hosts. Every piece in the collection is meant to be
+            // 16:9, so the frame is fixed to that ratio, but object-contain
+            // (not cover) means a piece that isn't pixel-exact never gets
+            // cropped — it just letterboxes instead. Fading via
+            // framer-motion's `animate` prop (rather than a raw CSS
+            // transition tied to inline style state) guarantees the
+            // transition actually plays even for a cached image, where the
+            // load event can otherwise fire before the hidden frame is
+            // ever painted.
             <motion.img
               src={src}
               alt={token.name}
@@ -57,7 +64,7 @@ export function ArtworkCard({
               initial={{ opacity: 0 }}
               animate={{ opacity: loaded ? 1 : 0 }}
               transition={{ duration: 1.1, ease: "easeOut" }}
-              className="block aspect-video w-full object-cover"
+              className="block aspect-video w-full object-contain"
             />
           ) : (
             <div
