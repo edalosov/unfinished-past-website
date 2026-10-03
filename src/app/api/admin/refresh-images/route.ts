@@ -10,20 +10,21 @@ import { refreshContractMetadata } from "@/lib/alchemy";
 // the gallery at a new contract. Safe to call repeatedly; it just reports
 // the reingestion job's current progress.
 export async function POST() {
-  const session = await getSession();
-  if (!session.isAdmin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const config = await getGalleryConfig();
-  if (!config.nftContractAddress) {
-    return NextResponse.json({ error: "Gallery not configured" }, { status: 400 });
-  }
-
   try {
+    const session = await getSession();
+    if (!session.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const config = await getGalleryConfig();
+    if (!config.nftContractAddress) {
+      return NextResponse.json({ error: "Gallery not configured" }, { status: 400 });
+    }
+
     const result = await refreshContractMetadata(config.nftContractAddress, config.chainId);
     return NextResponse.json(result);
-  } catch {
-    return NextResponse.json({ error: "Failed to reach the NFT provider" }, { status: 502 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to reach the NFT provider";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
