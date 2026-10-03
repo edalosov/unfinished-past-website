@@ -10,7 +10,7 @@ const MAX_LENGTH = 300;
 export type SharePreference = "PRIVATE" | "ANONYMOUS" | "NAMED";
 
 const SHARE_OPTIONS: { value: SharePreference; label: string }[] = [
-  { value: "PRIVATE", label: "Please do not share my answer nor my name." },
+  { value: "PRIVATE", label: "Please do not share my answer or my name." },
   { value: "ANONYMOUS", label: "You can share my answer, but please do so anonymously." },
   { value: "NAMED", label: "You can share my answer and my name, no problem with that." },
 ];
