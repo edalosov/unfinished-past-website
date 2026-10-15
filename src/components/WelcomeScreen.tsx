@@ -11,7 +11,7 @@ export function WelcomeScreen() {
         transition={{ duration: 2, ease: [0.22, 1, 0.36, 1] }}
         className="font-display text-4xl font-bold underline-thick tracking-tight text-foreground sm:text-5xl"
       >
-        Welcome back
+        Welcome
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }}
